@@ -1,0 +1,50 @@
+{
+  "name": "nodets",
+
+  "image": "node:18-bullseye",
+  "runArgs": [
+    "--name=devcontainer-nodets"
+    //
+  ],
+  "containerEnv": {
+    "GITHUB_TOKEN": "${localEnv:GITHUB_TOKEN}",
+    "NPM_TOKEN": "${localEnv:NPM_TOKEN}",
+    "NODE_ENV": "development",
+    "HTTP_API_TESTS_ENTRYPOINT": "http://localhost:8080"
+  },
+  "mounts": [
+    "type=volume,source=devvolume-npm-cache,target=/root/.npm" // target path: npm config get cache
+  ],
+
+  "initializeCommand": ["./.devcontainer/init-host.sh"],
+  "postStartCommand": ["./.devcontainer/init-container.bash"],
+
+  "portsAttributes": {
+    "8080": {
+      "label": "app",
+      "onAutoForward": "openPreview"
+    },
+    "9229": {
+      "label": "debugger",
+      "onAutoForward": "silent"
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "esbenp.prettier-vscode"
+        //
+      ],
+      "settings": {
+        "files.encoding": "utf8",
+        "files.eol": "\n",
+        "files.trimTrailingWhitespace": true,
+        "files.trimFinalNewlines": true,
+        "files.insertFinalNewline": true,
+
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+      }
+    }
+  }
+}

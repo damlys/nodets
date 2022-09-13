@@ -1,0 +1,62 @@
+name: workflow0
+on:
+  push:
+    branches:
+      - develop
+      - main
+  pull_request:
+    branches:
+      - develop
+      - main
+jobs:
+  job0:
+    runs-on: ubuntu-22.04
+    container:
+      image: node:18-bullseye
+    env:
+      GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      NPM_TOKEN: "${{ secrets.NPM_TOKEN }}"
+      NODE_ENV: development
+    steps:
+      - name: Set Git user
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+      - name: Clone Git repository
+        uses: actions/checkout@v3
+      - run: chmod -R 777 .
+
+      - name: Run NPM vulnerability scanning
+        run: npm audit --audit-level=high
+        continue-on-error: true
+      - name: Install NPM modules
+        run: npm ci
+      - if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        name: Bump version (prerelease)
+        run: npm run release -- --prerelease=rc
+      - if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        name: Bump version (release)
+        run: npm run release
+
+      - name: Run code format check
+        run: npm run format:check
+      - name: Run code lint check
+        run: npm run lint:check
+      - name: Run unit tests
+        run: npm run test:unit
+
+      - name: Build app
+        run: npm run build
+      - name: Run app & system tests
+        env:
+          HTTP_API_TESTS_ENTRYPOINT: http://127.0.0.1:8080
+        run: |
+          npm run js:exec -- run-http-server &
+          npm run test:system
+
+      - if: github.event_name == 'push'
+        name: Publish NPM module
+        run: npm publish
+      - if: github.event_name == 'push'
+        name: Publish version
+        run: git push && git push --tags
